@@ -151,6 +151,17 @@ footer.bar{position:sticky;bottom:0;z-index:20;background:var(--bg);padding:.5re
   function cur() { for (var i = 0; i < S.chats.length; i++) if (S.chats[i].id === S.active) return S.chats[i]; return null; }
   function save() { LS.set('uc_chats', S.chats); LS.set('uc_active', S.active); }
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function showAdAfterBotAnswer() {
+    try {
+      var adDiv = document.createElement('div');
+      adDiv.setAttribute('data-sponsoric-slot', 'in-content');
+      adDiv.setAttribute('data-tags', 'ai-tools,machine-learning,text-processing,chatbot');
+      adDiv.style.cssText = 'margin:12px 0;text-align:center;min-height:60px;';
+      var box = document.getElementById('msgs');
+      if (box) box.appendChild(adDiv);
+      if (window.Sponsoric && window.Sponsoric.refresh) window.Sponsoric.refresh();
+    } catch(e){}
+  }
   function md(t) {
     try {
       if (window.marked && window.DOMPurify) {
@@ -317,6 +328,7 @@ footer.bar{position:sticky;bottom:0;z-index:20;background:var(--bg);padding:.5re
     else m.content = shown;
     if (el.isConnected) el.innerHTML = m.error ? '<span class="err">' + esc(m.content) + '</span>' : md(m.content);
     busy = false; ctrl = null; setBtn(); save();
+    if (!m.error && m.content) showAdAfterBotAnswer();
   }
 
   /* ---------- init ---------- */
