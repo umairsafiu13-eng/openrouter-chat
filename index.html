@@ -13,7 +13,6 @@
 <meta property="og:description" content="Free Universal AI Chat - Ask anything with Umairai AI">
 <meta property="og:url" content="https://umairai.vercel.app/">
 <meta property="og:type" content="website">
-
 <style>
 :root{--bg:#fff;--side:#f0f4f9;--text:#1f1f1f;--muted:#5f6368;--user:#e9eef6;--hover:#dfe5ee;--line:#dadce0;--accent:#0b57d0;--onacc:#fff;color-scheme:light}
 .dark{--bg:#131314;--side:#1e1f20;--text:#e3e3e3;--muted:#9aa0a6;--user:#282a2c;--hover:#333537;--line:#3c4043;--accent:#a8c7fa;--onacc:#062e6f;color-scheme:dark}
@@ -89,7 +88,6 @@ footer.bar{position:sticky;bottom:0;z-index:20;background:var(--bg);padding:.5re
 <body>
 <div id="loading">Loading App...</div>
 <noscript><p style="padding:1rem">This app needs JavaScript enabled.</p></noscript>
-
 <div id="app" style="visibility:hidden">
   <div id="backdrop"></div>
   <aside id="sidebar" aria-label="Chat history">
@@ -100,7 +98,6 @@ footer.bar{position:sticky;bottom:0;z-index:20;background:var(--bg);padding:.5re
     <nav id="chatList"></nav>
     <div class="p-3"><button id="setBtn2" class="sbtn">⚙ Settings</button></div>
   </aside>
-
   <main id="main">
     <header class="top">
       <button id="menuBtn" class="ib" aria-label="Open menu">☰</button>
@@ -118,7 +115,6 @@ footer.bar{position:sticky;bottom:0;z-index:20;background:var(--bg);padding:.5re
     </footer>
   </main>
 </div>
-
 <div id="modal" role="dialog" aria-modal="true">
   <div class="card">
     <h2>Settings</h2>
@@ -132,7 +128,6 @@ footer.bar{position:sticky;bottom:0;z-index:20;background:var(--bg);padding:.5re
     <div class="acts"><button id="fCancel">Cancel</button><button id="fSave" class="pri">Save</button></div>
   </div>
 </div>
-
 <script src="https://cdn.tailwindcss.com/3.4.17"></script>
 <script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.6/purify.min.js"></script>
@@ -142,7 +137,7 @@ footer.bar{position:sticky;bottom:0;z-index:20;background:var(--bg);padding:.5re
   var URL_API = 'https://openrouter.ai/api/v1/chat/completions';
   var DEF_MODEL = 'deepseek/deepseek-r1:free';
   var AGENTADS_KEY = 'pub_mEXXSEGTlyHc3b8Q3Qw0isOFcLB7cbvcdbnqZtca';
-  var AGENTADS_ENDPOINT = 'https://app.tryagentads.com/api/auction';
+  var AGENTADS_ENDPOINT = 'https://api.tryagentads.com/v1/bid';
   var $ = function (id) { return document.getElementById(id); };
   var LS = {
     get: function (k, d) { try { var v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
@@ -150,37 +145,33 @@ footer.bar{position:sticky;bottom:0;z-index:20;background:var(--bg);padding:.5re
   };
   var S = { chats: [], active: null, cfg: { key: '', model: DEF_MODEL, system: '' }, dark: false };
   var busy = false, ctrl = null;
-
   function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
   function cur() { for (var i = 0; i < S.chats.length; i++) if (S.chats[i].id === S.active) return S.chats[i]; return null; }
   function save() { LS.set('uc_chats', S.chats); LS.set('uc_active', S.active); }
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
-
   async function showAgentAd(lastUserText, lastAiText) {
-    if (!AGENTADS_KEY) return;
     try {
       var box = document.getElementById('msgs');
       if (!box) return;
       var res = await fetch(AGENTADS_ENDPOINT, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + AGENTADS_KEY },
-        body: JSON.stringify({ publisherKey: AGENTADS_KEY, prompt: lastUserText, response: lastAiText, context: lastUserText })
+        body: JSON.stringify({ publisherApiKey: AGENTADS_KEY, query: lastUserText, response: lastAiText.slice(0,500) })
       });
       if (!res.ok) return;
       var data = await res.json();
-      var ad = data.ad || data.placement || data;
+      var ad = data.ad || data;
       if (!ad || !ad.title) return;
       var adDiv = document.createElement('div');
       adDiv.className = 'ad-box';
-      var link = ad.url || ad.link || ad.href || '#';
-      var title = ad.title || ad.headline || 'Sponsored';
+      var link = ad.url || ad.link || '#';
+      var title = ad.title || 'Sponsored';
       var desc = ad.description || ad.body || '';
       adDiv.innerHTML = '<small>Sponsored • AgentAds</small><a href="' + esc(link) + '" target="_blank" rel="sponsored noopener">' + esc(title) + '</a><div>' + esc(desc) + '</div>';
       box.appendChild(adDiv);
       window.scrollTo(0, document.body.scrollHeight);
     } catch(e){}
   }
-
   function md(t) {
     try {
       if (window.marked && window.DOMPurify) {
@@ -190,7 +181,6 @@ footer.bar{position:sticky;bottom:0;z-index:20;background:var(--bg);padding:.5re
     } catch (e) {}
     return esc(t).replace(/\n/g, '<br>');
   }
-
   function openSb() { $('sidebar').classList.add('open'); $('backdrop').style.display = 'block'; }
   function closeSb() { $('sidebar').classList.remove('open'); $('backdrop').style.display = 'none'; }
   function setTheme(d) {
@@ -202,7 +192,6 @@ footer.bar{position:sticky;bottom:0;z-index:20;background:var(--bg);padding:.5re
     $('modal').classList.add('show'); closeSb();
   }
   function closeModal() { $('modal').classList.remove('show'); }
-
   function newChat() {
     var c = cur();
     if (!(c && !c.messages.length)) {
@@ -264,7 +253,6 @@ footer.bar{position:sticky;bottom:0;z-index:20;background:var(--bg);padding:.5re
   }
   function setBtn() { var b = $('sendBtn'); b.textContent = busy ? '■' : '➤'; b.setAttribute('aria-label', busy ? 'Stop' : 'Send'); }
   function fit() { var t = $('inp'); t.style.height = 'auto'; t.style.height = Math.min(t.scrollHeight, 160) + 'px'; }
-
   function stop() { if (ctrl) ctrl.abort(); }
   function send() {
     if (busy) { stop(); return; }
@@ -280,7 +268,6 @@ footer.bar{position:sticky;bottom:0;z-index:20;background:var(--bg);padding:.5re
     ta.value = ''; fit(); save(); renderAll();
     stream(c, m);
   }
-
   async function stream(c, m) {
     busy = true; setBtn(); ctrl = new AbortController();
     var last = $('msgs').lastChild;
@@ -350,7 +337,6 @@ footer.bar{position:sticky;bottom:0;z-index:20;background:var(--bg);padding:.5re
       showAgentAd(lastUser, m.content);
     }
   }
-
   function init() {
     var cfg = LS.get('uc_cfg', null);
     if (cfg && typeof cfg === 'object') {
@@ -367,7 +353,6 @@ footer.bar{position:sticky;bottom:0;z-index:20;background:var(--bg);padding:.5re
     if (!cur()) S.active = S.chats.length ? S.chats[0].id : null;
     var dk = LS.get('uc_dark', null);
     setTheme(dk === null ? (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) : dk);
-
     $('menuBtn').onclick = openSb; $('closeSb').onclick = closeSb; $('backdrop').onclick = closeSb;
     $('newChat').onclick = newChat;
     $('themeBtn').onclick = function () { setTheme(!S.dark); };
@@ -387,12 +372,10 @@ footer.bar{position:sticky;bottom:0;z-index:20;background:var(--bg);padding:.5re
       if (e.key === 'Enter' && !e.shiftKey && !e.isComposing && !touch) { e.preventDefault(); send(); }
     });
     document.addEventListener('keydown', function (e) { if (e.key === 'Escape') { closeModal(); closeSb(); } });
-
     if (!cur()) newChat(); else renderAll();
     $('app').style.visibility = 'visible';
     $('loading').style.display = 'none';
   }
-
   try { init(); }
   catch (e) { var l = $('loading'); if (l) l.textContent = 'Could not start: ' + (e && e.message ? e.message : e); }
 })();
